@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>자료실 (GitHub 연동)</title>
+<style>
+  body{font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:0;background:#f7f7f8}
+  .wrap{max-width:980px;margin:40px auto;padding:0 16px}
+  h1{margin:0 0 16px}
+  .card{background:#fff;border:1px solid #0001;border-radius:12px;padding:16px;margin:12px 0}
+  .item{display:flex;justify-content:space-between;gap:12px;align-items:center}
+  .meta{font-size:12px;color:#666}
+  .btn{padding:10px 14px;border-radius:10px;border:1px solid #0002;background:#fff;cursor:pointer}
+  .muted{color:#666}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  input{padding:10px 12px;border:1px solid #0002;border-radius:8px;width:260px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>자료실</h1>
+
+  <div class="card">
+    <div class="bar">
+      <input id="q" placeholder="파일명 검색" />
+      <button class="btn" id="refresh">새로고침</button>
+      <span class="muted">GitHub 저장소 <b>files</b> 폴더의 파일이 자동으로 표시됩니다.</span>
+    </div>
+    <div id="list" aria-live="polite">불러오는 중…</div>
+  </div>
+</div>
+
+<script>
+  // ★ 여기가 핵심 설정 (네 계정/저장소/폴더로 이미 맞춰둠)
+  const owner = "cirmax82-beep"; // 깃허브 아이디
+  const repo  = "fruitionsite";  // 저장소 이름
+  const path  = "files";         // 파일 올려둔 폴더 이름
+
+  const API = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+  const listEl = document.getElementById('list');
+  const qEl = document.getElementById('q');
+
+  async function load() {
+    listEl.textContent = '불러오는 중…';
+    try{
+      const res = await fetch(API, { headers: { 'Accept': 'application/vnd.github+json' }});
+      if(!res.ok) throw new Error('목록을 불러올 수 없습니다.');
+      const data = await res.json();
+      const files = data.filter(it => it.type === 'file');
+      render(files);
+    }catch(e){
+      console.error(e);
+      listEl.textContent = '목록을 불러오지 못했습니다. 저장소 공개/경로 확인.';
+    }
+  }
+
+  function render(files){
+    const q = (qEl.value||'').trim().toLowerCase();
+    const filtered = files.filter(f => f.name.toLowerCase().includes(q));
+    if(filtered.length === 0){
+      listEl.innerHTML = '<p class="muted">표시할 파일이 없습니다.</p>';
+      return;
+    }
+    listEl.innerHTML = '';
+    filtered.forEach(f=>{
+      const size
